@@ -59,10 +59,10 @@ jobs:
           cargo +nightly -Z build-std=std,panic_abort build --release --target x86_64-win7-windows-msvc --manifest-path (Join-Path $smoke "Cargo.toml")
           if ($LASTEXITCODE -ne 0) { throw "Windows 7 target smoke build failed" }
 
-      - name: Build Stalwart with SQLite and Enterprise code
+      - name: Build Stalwart with SQLite, PostgreSQL, RocksDB, S3, Redis, Keep, NATS, Enterprise
         shell: pwsh
         run: |
-          cargo +nightly -Z build-std=std,panic_abort build --release --locked --target x86_64-win7-windows-msvc -p stalwart --no-default-features --features "sqlite enterprise"
+          cargo +nightly -Z build-std=std,panic_abort build --release --locked --target x86_64-win7-windows-msvc -p stalwart --no-default-features --features "sqlite postgres rocks s3 redis keep nats enterprise"
           if ($LASTEXITCODE -ne 0) { throw "Stalwart cross-target build failed" }
 
       - name: Record executable SHA256
@@ -78,7 +78,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: stalwart-win2008r2-EXPERIMENTAL
+          name: stalwart-win2008r2-EXTENDED-EXPERIMENTAL
           path: target/x86_64-win7-windows-msvc/release/stalwart.exe
           if-no-files-found: error
           retention-days: 7
