@@ -1,0 +1,84 @@
+name: Windows Server 2008 R2 compatibility experiment
+
+on:
+  push:
+    branches:
+      - win2008r2
+    paths:
+      - .github/workflows/win2008r2.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: win2008r2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Windows NT 6.1 target smoke test and Stalwart build
+    runs-on: windows-2022
+    timeout-minutes: 180
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+      CARGO_TERM_COLOR: always
+      AWS_LC_SYS_PREBUILT_NASM: "1"
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+
+      - name: Install nightly Rust and std sources
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+
+      - name: Report toolchain and target availability
+        shell: pwsh
+        run: |
+          rustc --version --verbose
+          cargo --version
+          rustup component list --installed
+          git rev-parse HEAD
+          $targets = rustc --print target-list
+          if ($targets -notcontains "x86_64-win7-windows-msvc") {
+            throw "Rust toolchain does not recognize x86_64-win7-windows-msvc"
+          }
+
+      - name: Build a minimal Windows 7 / Server 2008 R2 target program
+        shell: pwsh
+        run: |
+          $smoke = Join-Path $env:RUNNER_TEMP "win7-smoke"
+          cargo +nightly init --bin --name win7_smoke $smoke
+          if ($LASTEXITCODE -ne 0) { throw "cargo init failed" }
+          @'
+          fn main() {
+              println!("Windows NT 6.1 target smoke test");
+          }
+          '@ | Set-Content -Path (Join-Path $smoke "src\main.rs") -Encoding utf8
+          cargo +nightly -Z build-std=std,panic_abort build --release --target x86_64-win7-windows-msvc --manifest-path (Join-Path $smoke "Cargo.toml")
+          if ($LASTEXITCODE -ne 0) { throw "Windows 7 target smoke build failed" }
+
+      - name: Build Stalwart with SQLite and Enterprise code
+        shell: pwsh
+        run: |
+          cargo +nightly -Z build-std=std,panic_abort build --release --locked --target x86_64-win7-windows-msvc -p stalwart --no-default-features --features "sqlite enterprise"
+          if ($LASTEXITCODE -ne 0) { throw "Stalwart cross-target build failed" }
+
+      - name: Record executable SHA256
+        if: success()
+        shell: pwsh
+        run: |
+          $exe = "target\x86_64-win7-windows-msvc\release\stalwart.exe"
+          if (-not (Test-Path $exe)) { throw "Expected stalwart.exe not found" }
+          Get-Item $exe | Select-Object FullName, Length
+          Get-FileHash $exe -Algorithm SHA256 | Format-List
+
+      - name: Upload experimental executable
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stalwart-win2008r2-EXPERIMENTAL
+          path: target/x86_64-win7-windows-msvc/release/stalwart.exe
+          if-no-files-found: error
+          retention-days: 7
