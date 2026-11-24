@@ -1,3 +1,4 @@
+# Stalwart 1.2.0: repeat the extended NT 6.1 build after upstream sync.
 name: Windows Server 2008 R2 compatibility experiment
 
 on:
