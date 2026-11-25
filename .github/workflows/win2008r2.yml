@@ -1,4 +1,4 @@
-# Stalwart 1.2.0: repeat the extended NT 6.1 build after upstream sync.
+# Stalwart 1.2.0: extended NT 6.1 build with Exchange protocols.
 name: Windows Server 2008 R2 compatibility experiment
 
 on:
@@ -60,10 +60,10 @@ jobs:
           cargo +nightly -Z build-std=std,panic_abort build --release --target x86_64-win7-windows-msvc --manifest-path (Join-Path $smoke "Cargo.toml")
           if ($LASTEXITCODE -ne 0) { throw "Windows 7 target smoke build failed" }
 
-      - name: Build Stalwart with SQLite, PostgreSQL, RocksDB, S3, Redis, Keep, NATS, Enterprise
+      - name: Build Stalwart with SQLite, PostgreSQL, RocksDB, S3, Redis, Keep, NATS, Enterprise, Exchange
         shell: pwsh
         run: |
-          cargo +nightly -Z build-std=std,panic_abort build --release --locked --target x86_64-win7-windows-msvc -p stalwart --no-default-features --features "sqlite postgres rocks s3 redis keep nats enterprise"
+          cargo +nightly -Z build-std=std,panic_abort build --release --locked --target x86_64-win7-windows-msvc -p stalwart --no-default-features --features "sqlite postgres rocks s3 redis keep nats enterprise exchange"
           if ($LASTEXITCODE -ne 0) { throw "Stalwart cross-target build failed" }
 
       - name: Record executable SHA256
@@ -79,7 +79,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: stalwart-win2008r2-EXTENDED-EXPERIMENTAL
+          name: stalwart-win2008r2-EXTENDED-EXCHANGE-EXPERIMENTAL
           path: target/x86_64-win7-windows-msvc/release/stalwart.exe
           if-no-files-found: error
           retention-days: 7
