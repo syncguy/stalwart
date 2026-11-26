@@ -1,4 +1,4 @@
-# Stalwart 1.2.0: extended NT 6.1 build with Exchange protocols.
+# Stalwart 1.2.1: extended NT 6.1 build with Exchange protocols.
 name: Windows Server 2008 R2 compatibility experiment
 
 on:
